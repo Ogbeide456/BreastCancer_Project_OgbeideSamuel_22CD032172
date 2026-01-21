@@ -1,22 +1,43 @@
 
-from flask import Flask, render_template, request
+# streamlit_app.py
+import streamlit as st
 import joblib
 import numpy as np
 import os
 
-app = Flask(__name__)
-model = joblib.load(os.path.join('model', 'breast_cancer_model.pkl'))
+st.set_page_config(page_title="Breast Cancer Predictor", layout="centered")
+
+st.title("Breast Cancer Prediction (Demo)")
+st.write("This is an educational demo. Not a medical device.")
+
+MODEL_PATH = "model/breast_cancer_model.pkl"
+
+# Load model (show friendly error if missing)
+if not os.path.exists(MODEL_PATH):
+    st.error(f"Model not found at '{MODEL_PATH}'. Run the training script or upload the file.")
+    st.stop()
+
+model = joblib.load(MODEL_PATH)
 
 FEATURES = ['radius_mean','perimeter_mean','area_mean','smoothness_mean','concavity_mean']
 
-@app.route('/', methods=['GET','POST'])
-def index():
-    result = None
-    if request.method == 'POST':
-        values = [float(request.form[f]) for f in FEATURES]
-        pred = model.predict([values])[0]
-        result = "Malignant" if pred == 1 else "Benign"
-    return render_template('index.html', features=FEATURES, result=result)
+st.sidebar.header("Input features")
+inputs = {}
+for f in FEATURES:
+    # Use number_input with a broad range, adjust if you want min/max
+    inputs[f] = st.sidebar.number_input(f, value=float( getattr(model, 'feature_default', 10.0) ), format="%.4f")
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if st.sidebar.button("Predict"):
+    X = np.array([inputs[f] for f in FEATURES]).reshape(1, -1)
+    try:
+        pred = model.predict(X)[0]
+        proba = model.predict_proba(X)[0]
+        label = "Malignant" if int(pred) == 1 else "Benign"
+        st.success(f"Prediction: **{label}**")
+        st.write(f"Probabilities — Benign: {proba[0]:.4f}, Malignant: {proba[1]:.4f}")
+    except Exception as e:
+        st.error(f"Prediction error: {e}")
+
+st.markdown("---")
+st.caption("Make sure `model/breast_cancer_model.p
+
