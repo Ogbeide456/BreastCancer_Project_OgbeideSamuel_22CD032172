@@ -1,4 +1,3 @@
-
 # streamlit_app.py
 import streamlit as st
 import joblib
@@ -7,37 +6,59 @@ import os
 
 st.set_page_config(page_title="Breast Cancer Predictor", layout="centered")
 
-st.title("Breast Cancer Prediction (Demo)")
-st.write("This is an educational demo. Not a medical device.")
+st.title("Breast Cancer Prediction System")
+st.write("⚠️ This application is for educational purposes only. Not a medical diagnostic tool.")
 
 MODEL_PATH = "model/breast_cancer_model.pkl"
 
-# Load model (show friendly error if missing)
+# Check model existence
 if not os.path.exists(MODEL_PATH):
-    st.error(f"Model not found at '{MODEL_PATH}'. Run the training script or upload the file.")
+    st.error("Model file not found. Please ensure 'model/breast_cancer_model.pkl' exists.")
     st.stop()
 
+# Load model
 model = joblib.load(MODEL_PATH)
 
-FEATURES = ['radius_mean','perimeter_mean','area_mean','smoothness_mean','concavity_mean']
+FEATURES = [
+    "radius_mean",
+    "perimeter_mean",
+    "area_mean",
+    "smoothness_mean",
+    "concavity_mean"
+]
 
-st.sidebar.header("Input features")
-inputs = {}
-for f in FEATURES:
-    # Use number_input with a broad range, adjust if you want min/max
-    inputs[f] = st.sidebar.number_input(f, value=float( getattr(model, 'feature_default', 10.0) ), format="%.4f")
+st.sidebar.header("Input Tumor Features")
+
+inputs = []
+for feature in FEATURES:
+    value = st.sidebar.number_input(
+        label=feature.replace("_", " ").title(),
+        min_value=0.0,
+        value=1.0,
+        format="%.4f"
+    )
+    inputs.append(value)
 
 if st.sidebar.button("Predict"):
-    X = np.array([inputs[f] for f in FEATURES]).reshape(1, -1)
+    X = np.array(inputs).reshape(1, -1)
+
     try:
-        pred = model.predict(X)[0]
-        proba = model.predict_proba(X)[0]
-        label = "Malignant" if int(pred) == 1 else "Benign"
-        st.success(f"Prediction: **{label}**")
-        st.write(f"Probabilities — Benign: {proba[0]:.4f}, Malignant: {proba[1]:.4f}")
+        prediction = model.predict(X)[0]
+        probabilities = model.predict_proba(X)[0]
+
+        label = "Malignant" if prediction == 1 else "Benign"
+
+        st.success(f"### Prediction Result: **{label}**")
+        st.write(
+            f"**Probability** → Benign: {probabilities[0]:.4f}, "
+            f"Malignant: {probabilities[1]:.4f}"
+        )
+
     except Exception as e:
-        st.error(f"Prediction error: {e}")
+        st.error(f"Prediction failed: {e}")
 
 st.markdown("---")
-st.caption("Make sure `model/breast_cancer_model.p
-
+st.caption(
+    "Ensure the trained model file exists at "
+    "`model/breast_cancer_model.pkl` before deployment."
+)
